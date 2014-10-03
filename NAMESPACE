@@ -1,0 +1,4 @@
+importFrom(Biobase, exprs, addVigs2WinMenu)
+importMethodsFrom(Biobase,exprs)
+importFrom(MASS, stepAIC)
+export(marker, crplot, em_quantvg, swlm, fmm, lmfitst, slt, pvalmat, coefmat)

@@ -1,0 +1,3 @@
+citHeader("To cite the PSEA package, please use:")
+
+citEntry(entry = "Misc",author = person(given = "Alexandre", family="Kuhn"), textVersion = 'PSEA package',title = "PSEA package")
