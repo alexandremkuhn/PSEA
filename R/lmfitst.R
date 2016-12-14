@@ -12,8 +12,7 @@ lmfitst<-function(y,fmdlm,st,subset=NULL,d=2,lm=TRUE) {
 		edf<-n-x$df.residual
 		n*log(apply(matrix(x$residuals,nrow=n)^2,2,sum)/n)+2*edf})
         if (is.null(dim(crtst))) crtst<-matrix(crtst,nrow=1) #if only 1 response
-        wcrt<-apply(crtst,1,function(x){which(x-min(x)<=d)})
-        if (!is.list(wcrt)) wcrt<-as.list(unname(data.frame(wcrt))) #if same number
+        wcrt<-tapply(crtst,row(crtst),function(x){which(x-min(x)<=d)},simplify=FALSE)
         wcrto<-lapply(1:ivn,function(x){wcrt[[x]][
                         order(rgrsrnb[wcrt[[x]]],crtst[x,wcrt[[x]]])]})
         wcrto1<-sapply(wcrto,function(x){x[1]})
