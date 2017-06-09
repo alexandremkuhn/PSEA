@@ -8,7 +8,7 @@
 BiocStyle::latex()
 @
 
-\bioctitle[PSEA]{PSEA: Expression deconvolution of neural RNA mixtures\newline(replication of results from the Nature Methods paper)}
+\bioctitle[PSEA of RNA mixtures]{PSEA: Expression deconvolution of neural RNA mixtures\newline(replication of results from the Nature Methods paper)}
 \author{Alexandre Kuhn\footnote{alexandre.m.kuhn@gmail.com}}
 
 \begin{document}
