@@ -1,0 +1,221 @@
+% \VignetteIndexEntry{PSEA: Deconvolution of RNA mixtures in Nature Methods paper}
+% \VignetteEngine{utils::Sweave}
+% \VignettePackage{PSEA}
+\documentclass{article}
+\usepackage[nogin]{Sweave}
+
+<<style-Sweave, eval=TRUE, echo=FALSE, results=tex>>=
+BiocStyle::latex()
+@
+
+\bioctitle[PSEA]{PSEA: Expression deconvolution of neural RNA mixtures\newline(replication of results from the Nature Methods paper)}
+\author{Alexandre Kuhn\footnote{alexandre.m.kuhn@gmail.com}}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+This document shows how we applied PSEA to deconvolute the set of artificial RNA mixtures presented in \cite{Kuhn2011}.
+
+Briefly, this dataset was generated and analyzed as follows: We obtained RNA samples from 4 individual neural cell types (neurons, astrocytes, oligodendrocytes and microglia). We generated 10 mixed RNA samples (with varying mixing proportions) and obtained gene expression profiles for the 10 mixed samples as well as for the 4 pure cell types. We then deconvoluted mixed samples and compared the predicted cell-type specific expression with the expression obtained from pure samples. The whole dataset (10 mixed samples and 4 replicates for each of the 4 cell types) is deposited in GEO (\url{https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE19380}). More details can be found in the Supplementary material to \cite{Kuhn2011} at \url{https://www.nature.com/article-assets/npg/nmeth/journal/v8/n11/extref/nmeth.1710-S1.pdf}.
+
+
+\section{Deconvolution of RNA mixtures}
+Here we explain how we applied PSEA to predict cell type-specific expression from the RNA mixtures and replicate some of the Supplementary Figures presented in \cite{Kuhn2011}.
+
+To keep this vignette self-contained, we will start from the normalized expression data (provided with the PSEA package, as indicated below). However, you can download the raw data from GEO and generate the normalized expression data yourself, as explained at the beginning of this protocol. 
+
+We start by loading the required libraries.
+
+<<>>=
+library(PSEA)
+library(GEOquery)
+library(affy)
+@
+
+If you want to start from the raw microarray data, you can download them from GEO and retrieve the corresponding sample information.
+
+<<eval=FALSE>>=
+dataset<-getGEO(GEO="GSE19380",destdir=".")
+information<-pData(phenoData(dataset[["GSE19380_series_matrix.txt.gz"]]))
+sample_IDs<-as.character(information[,"geo_accession"])
+datafiles<-sapply(sample_IDs,function(x){rownames(getGEOSuppFiles(x))})
+@
+
+Note that if you have already downloaded the data as just shown and you are re-running the protocol, you can avoid downloading the data again and use the corresponding compressed file (that was stored locally after the initial download).
+
+<<eval=FALSE>>=
+dataset<-getGEO(GEO="GSE19380",filename="GSE19380_series_matrix.txt.gz")
+dataset<-list("GSE19380_series_matrix.txt.gz"=dataset)
+information<-pData(phenoData(dataset[["GSE19380_series_matrix.txt.gz"]]))
+sample_IDs<-as.character(information[,"geo_accession"])
+datafiles<-file.path(sample_IDs,paste(sample_IDs,".CEL.gz",sep=""))
+@
+
+To start the analysis from the raw microarray data (.CEL files), load them into R and perform normalization.
+
+<<eval=FALSE>>=
+raw_data<-ReadAffy(filenames=datafiles,compress=TRUE)
+expression_GSE19380<-2^exprs(rma(raw_data))
+@
+
+As already mentioned above, you can also run this protcol without downloading data as we provide the corresponding normalized expression data with the PSEA package. We will now load it and proceed with PSEA deconvolution (so you can skip this step if you want to use data you have just downloaded from GEO instead). 
+
+<<>>=
+data(expression_GSE19380)
+@
+
+We start by removing the control probesets.
+
+<<>>=
+expression<-expression_GSE19380[1:31042,]
+@
+
+We then define marker probe sets (as per Supplementary Table 2 in \cite{Kuhn2011})
+
+<<>>=
+neuron_probesets<-list(c("1370058_at","1370059_at"),"1387073_at","1367845_at")
+astro_probesets<-list("1372190_at","1386903_at",c("1375120_at","1375183_at","1385923_at"))
+oligo_probesets<-list("1398257_at","1368861_a_at",c("1368263_a_at","1370434_a_at","1370500_a_at"))
+@
+
+and generate reference signals. We normalize the signals using mixed samples only as we restrict the use of pure samples to the validation of deconvoluted expression. Mixed samples correspond to column 17 to 24 of the expression matrix, as indicated in the corresponding sample information (\Rcode{information[,"characteristics\_ch1.1"]} or \Rcode{information[,"description"]}).
+
+<<>>=
+mixedsamples<-c(17:24)
+neuron_reference<-marker(expression,neuron_probesets,sampleSubset=mixedsamples,targetMean=100)
+astro_reference<-marker(expression,astro_probesets,sampleSubset=mixedsamples,targetMean=100)
+oligo_reference<-marker(expression,oligo_probesets,sampleSubset=mixedsamples,targetMean=100)
+@
+
+We can plot the neuronal reference signal across all samples (replicates Supplementary Figure 3a, middle in \cite{Kuhn2011}).
+
+<<figNeuronalReferenceSignal, fig=TRUE, include=TRUE, width=3.5, height=3>>=
+par(cex=0.7)
+plot(neuron_reference,type="l")
+@
+
+We fit the signal measured by probeset 1367660\_at in the mixed samples with an expression model including all 3 populations (replicates Supplementary Figure 4a).
+
+<<>>=
+model1<-lm(expression["1367660_at",]~neuron_reference+astro_reference+
+oligo_reference,subset=mixedsamples)
+@
+
+We can use component-plus-residual plots to visualize the dependence of expression on the 4 reference signals.
+
+<<fig1367660_at_NAO, fig=TRUE, include=TRUE, height=2.5, width=7>>=
+par(mfrow=c(1,3),cex=0.7)
+crplot(model1,"neuron_reference",newplot=FALSE)
+crplot(model1,"astro_reference",newplot=FALSE,ylim=c(-250,250))
+crplot(model1,"oligo_reference",newplot=FALSE,ylim=c(-250,250))
+@
+
+We can inspect the fitted expression model and in particular the p-values.
+
+<<>>=
+summary(model1)
+@
+
+We now deconvolute the entire expression profile (i.e. all probesets) obtained for the mixed samples. We start by defining the full model matrix 
+
+<<>>=
+model_matrix<-cbind(intercept=1,neuron_reference,astro_reference,oligo_reference)
+@
+
+and specify the subset of models under consideration (as specified in Supplementary Table 3 in \cite{Kuhn2011})
+
+<<>>=
+model_subset<-em_quantvg(c(2,3,4), tnv=3, ng=1)
+@
+
+We fit each probeset with all models in the subset and select the best model.
+
+<<>>=
+models<-lmfitst(t(expression), model_matrix, model_subset, subset=mixedsamples)
+@
+
+Finally we extract coefficients, p-values and adjusted $R^2$ for the selected models
+
+<<>>=
+regressor_names<-as.character(1:4)
+coefficients<-coefmat(models[[2]], regressor_names)
+pvalues<-pvalmat(models[[2]], regressor_names)
+models_summary<-lapply(models[[2]], summary)
+adjusted_R2<-slt(models_summary, 'adj.r.squared')
+@
+
+and filter satisfactory expression models
+
+<<>>=
+negativecoefficient<-apply(coefficients[,-1]<0 & pvalues[,-1]<0.05,1,function(x){any(x,na.rm=TRUE)})
+average_expression<-apply(expression[,mixedsamples], 1, mean)
+filter<-!negativecoefficient & (coefficients[,1] / average_expression) < 0.5 & adjusted_R2 > 0.6
+@
+
+Here is the number of filtered probesets (see Supplementary Table 9 in \cite{Kuhn2011})
+
+Number of probesets with non-negative coefficients:
+<<>>=
+sum(!negativecoefficient)
+@
+
+Number of probesets with relative intercept < 0.5:
+<<>>=
+sum(coefficients[,1] / average_expression < 0.5)
+@
+
+Number of probesets with adjusted $R^2$ > 0.6:
+<<>>=
+sum(adjusted_R2 > 0.6)
+@
+
+Number of probesets passing all 3 criteria:
+<<>>=
+sum(filter)
+@
+
+We can for instance inspect the expression model for probeset 1370431\_at (replicates Supplementary Figure 4d, middle panel).
+
+<<>>=
+selectedpsname<-"1370431_at"
+selectedps<-which(rownames(expression)==selectedpsname)
+@
+
+The neuron-specific expression for 1370431\_at is
+
+<<>>=
+coefficients[selectedps,2]
+@
+
+and the corresponding p-value is
+
+<<>>=
+pvalues[selectedps,2]
+@
+
+The dependence on the neuronal reference signal is visualized as follows.
+
+<<eval=FALSE>>=
+crplot(models[[2]][[selectedps]],"2",ylim=c(0,950))
+@
+
+<<fig1370431, echo=FALSE, fig=TRUE, include=TRUE, width=3.5, height=3.5>>=
+par(cex=0.7)
+crplot(models[[2]][[selectedps]],"2",ylim=c(0,950),newplot=FALSE)
+@
+
+
+
+\section{Session Information}
+The version number of R and packages loaded for generating the vignette were:
+
+<<echo=FALSE>>=
+sessionInfo()
+@
+
+\bibliography{PSEA}
+\end{document}
+
+
