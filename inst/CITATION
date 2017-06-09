@@ -1,3 +1,17 @@
-citHeader("To cite the PSEA package, please use:")
-
-citEntry(entry = "Misc",author = person(given = "Alexandre", family="Kuhn"), textVersion = 'PSEA package',title = "PSEA package")
+citEntry(entry="article",
+         title = "Population-specific expression analysis (PSEA) reveals molecular changes in diseased brain",
+         author = personList( as.person("Alexandre Kuhn"),
+                              as.person("Doris Thu"),
+                              as.person("Henry J. Waldvogel"),
+                              as.person("Richard L.M. Faull"),
+                              as.person("Ruth Luthi-Carter")),
+         year = 2011,
+         journal = "Nature Methods",
+         doi = "10.1038/nmeth.1710",
+         volume = 8,
+         issue = 11,
+         pages = 945,
+         textVersion = 
+         paste("Kuhn A, Thu D, Waldvogel HJ, Faull RL, Luthi-Carter R.",
+		"Population-specific expression analysis (PSEA) reveals molecular changes in diseased brain.",
+		"Nature Methods 8(11):945-7 (2011)" ) )
