@@ -2,7 +2,6 @@
 % \VignetteEngine{utils::Sweave}
 % \VignettePackage{PSEA}
 \documentclass{article}
-\usepackage[nogin]{Sweave}
 
 <<style-Sweave, eval=TRUE, echo=FALSE, results=tex>>=
 BiocStyle::latex()
