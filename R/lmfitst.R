@@ -1,5 +1,5 @@
 lmfitst<-function(y,fmdlm,st,subset=NULL,d=2,lm=TRUE) {
-	if (class(y)=="ExpressionSet") y<-t(exprs(y))
+	if (is(y,"ExpressionSet")) y<-t(exprs(y))
         if (is.null(dim(y))) stop("y (or exprs(y) if y is an ExpressionSet) is not a matrix")
         if (!is.null(subset)) {y<-y[subset,,drop=FALSE]
 				fmdlm<-fmdlm[subset,,drop=FALSE]}
