@@ -1,5 +1,5 @@
 marker<-function(expr,id,sampleSubset=NULL,targetMean=1){
-	if (class(expr)=="ExpressionSet") expr<-exprs(expr)
+	if (is(expr,"ExpressionSet")) expr<-exprs(expr)
 	if (!is.matrix(expr)) {
 		warning("expr is not a matrix. Coercing to matrix.")
 		expr<-as.matrix(expr)
