@@ -1,5 +1,5 @@
 swlm<-function(y,subset=NULL,upper,lower=formula(~1),direction="both",trace=FALSE,keep=NULL,verbose=FALSE) {
-	if (class(y)=="ExpressionSet") y<-exprs(y)
+	if (is(y,"ExpressionSet")) y<-exprs(y)
         if (is.null(dim(y))) y<-matrix(y,nrow=1)
         if (is.null(subset)) subset<-1:ncol(y)
         swft<-list()
